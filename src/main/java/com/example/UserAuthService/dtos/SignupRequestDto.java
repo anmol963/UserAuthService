@@ -1,11 +1,11 @@
-package com.example.UserAuthService.dto;
+package com.example.UserAuthService.dtos;
 
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class UserRequestDto {
+public class SignupRequestDto {
 
     private String name;
 
