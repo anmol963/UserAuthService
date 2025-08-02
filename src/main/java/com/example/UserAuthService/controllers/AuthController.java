@@ -28,14 +28,19 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(loginRequestDto));
     }
 
-    @PostMapping("/validateToken")
+    @GetMapping("/validate")
     public ResponseEntity<UserDto> validateToken(@RequestBody ValidateTokenRequestDto validateTokenRequestDto) throws InvalidTokenException, TokenExpiredException {
         return ResponseEntity.ok(authService.validateToken(validateTokenRequestDto));
     }
 
-    @GetMapping("/logout")
+    @PostMapping("/logout")
     public ResponseEntity<String> logOut(@RequestBody LogOutRequestDto logOutRequestDto) throws InvalidTokenException {
         authService.logout(logOutRequestDto);
         return ResponseEntity.ok("Logout Successful");
+    }
+
+    @PostMapping("/user/update/{id}")
+    public ResponseEntity<UserDto> update(@RequestBody UserDto userDto, @PathVariable("id") Long id) throws UserNotFoundException {
+        return ResponseEntity.ok(authService.update(userDto, id));
     }
 }

@@ -10,6 +10,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -36,6 +37,7 @@ public class AuthServiceImpl implements AuthService{
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public UserDto signup(SignupRequestDto signupRequestDto) throws UserAlreadyExistsException{
         Optional<User> optionalUser = userRepository.findByEmail(signupRequestDto.getEmail());
         if(optionalUser.isPresent()) {
@@ -49,10 +51,11 @@ public class AuthServiceImpl implements AuthService{
         user.setPassword(bCryptPasswordEncoder.encode(signupRequestDto.getPassword()));
 
         User savedUser = userRepository.save(user);
-        return modelMapper.map(savedUser, UserDto.class);
+        return UserDto.from(savedUser);
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Token login(LoginRequestDto loginRequestDto) throws UserNotFoundException, UnauthorisedException {
         Optional<User> optionalUser = userRepository.findByEmail(loginRequestDto.getEmail());
         // check if email exists in DB
@@ -67,38 +70,55 @@ public class AuthServiceImpl implements AuthService{
         // generate token
         Token token = new Token();
         token.setUser(user);
-        token.setCreatedAt(LocalDateTime.now());
         token.setDeleted(false);
         token.setExpiryAt(LocalDateTime.now().plusDays(30));
-        token.setValue(RandomStringUtils.secure().nextPrint(30));
+        token.setValue(RandomStringUtils.secure().nextPrint(100));
         return tokenRepository.save(token);
     }
 
     @Override
     public UserDto validateToken(ValidateTokenRequestDto validateTokenRequestDto) throws InvalidTokenException, TokenExpiredException {
         // check if token exists, not deleted and not expired
-        Optional<Token> optionalToken = tokenRepository.findByValueAndAndIsDeletedAndExpiryAtGreaterThan(
+        Optional<Token> optionalToken = tokenRepository.findByValueAndIsDeletedAndExpiryAtGreaterThan(
                 validateTokenRequestDto.getToken(),
                 false,
                 LocalDateTime.now()
         );
-        // check if token exists in DB
         if(optionalToken.isEmpty()) {
             throw new InvalidTokenException("Invalid token");
         }
         Token token = optionalToken.get();
         User user = token.getUser();
-        return modelMapper.map(user, UserDto.class);
+        return UserDto.from(user);
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void logout(LogOutRequestDto logOutRequestDto) throws InvalidTokenException {
-        Optional<Token> optionalToken = tokenRepository.findByValue(logOutRequestDto.getTokenValue());
+        Optional<Token> optionalToken = tokenRepository.findByValueAndIsDeletedAndExpiryAtGreaterThan(
+                logOutRequestDto.getTokenValue(),
+                false,
+                LocalDateTime.now());
         if(optionalToken.isEmpty()) {
             throw new InvalidTokenException("Invalid token");
         }
         Token token = optionalToken.get();
         token.setDeleted(true);
         tokenRepository.save(token);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public UserDto update(UserDto userDto, Long id) throws UserNotFoundException {
+        Optional<User> optionalUser = userRepository.findById(id);
+        if(optionalUser.isEmpty()) {
+            throw new UserNotFoundException("User not found with id: " + id);
+        }
+        User user = optionalUser.get();
+        user.setName(userDto.getName());
+        user.setEmail(userDto.getEmail());
+        user.setPhoneNumber(userDto.getPhoneNumber());
+        userRepository.save(user);
+        return userDto;
     }
 }

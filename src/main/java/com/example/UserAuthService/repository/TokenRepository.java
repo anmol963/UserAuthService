@@ -12,7 +12,7 @@ public interface TokenRepository extends JpaRepository<Token, Long> {
 
     Optional<Token> findByValue(String value);
 
-    Optional<Token> findByValueAndAndIsDeletedAndExpiryAtGreaterThan(
+    Optional<Token> findByValueAndIsDeletedAndExpiryAtGreaterThan(
             String value,
             boolean deleted,
             LocalDateTime currentTime

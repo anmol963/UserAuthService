@@ -13,4 +13,6 @@ public interface AuthService {
     UserDto validateToken(ValidateTokenRequestDto validateTokenRequestDto) throws InvalidTokenException, TokenExpiredException;
 
     void logout(LogOutRequestDto logOutRequestDto) throws InvalidTokenException;
+
+    UserDto update(UserDto userDto, Long id) throws UserNotFoundException;
 }
